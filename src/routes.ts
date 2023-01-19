@@ -38,8 +38,8 @@ export async function appRoutes(app: FastifyInstance) {
 
     const { date } = getDayParams.parse(request.query);
 
-    const pardedDate = dayjs(date).startOf('day');
-    const weekDay = pardedDate.get('day');
+    const parsedDate = dayjs(date).startOf('day');
+    const weekDay = parsedDate.get('day');
 
     // Get all habits that were created before the date and have the week day
     const possibleHabits = await prisma.habit.findMany({
@@ -56,20 +56,23 @@ export async function appRoutes(app: FastifyInstance) {
     });
 
     // Get all habits that were completed on the date
-    const day = await prisma.day.findUnique({
+    const day = await prisma.day.findFirst({
       where: {
-        date: pardedDate.toDate(),
+        date: parsedDate.toDate(),
       },
       include: {
         habitsDay: true,
       },
     });
 
-    const completedHabitsIds = day?.habitsDay.map((habitDay) => {
-      return habitDay.habit_id;
+    const completedHabitsIds = day?.habitsDay.map((day) => {
+      return day.habit_id;
     });
 
-    return { possibleHabits, completedHabitsIds };
+    return {
+      possibleHabits,
+      completedHabitsIds,
+    };
   });
 
   app.patch('/habits/:id/toggle', async (request) => {
