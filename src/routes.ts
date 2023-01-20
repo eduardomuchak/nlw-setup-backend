@@ -1,11 +1,10 @@
+import dayjs from 'dayjs';
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from './lib/prisma';
-import dayjs from 'dayjs';
 
 export async function appRoutes(app: FastifyInstance) {
   app.post('/habits', async (request) => {
-    // Validate request body
     const createHabitBody = z.object({
       title: z.string(),
       weekDays: z.array(z.number().min(0).max(6)),
@@ -20,9 +19,9 @@ export async function appRoutes(app: FastifyInstance) {
         title,
         created_at: today,
         weekDays: {
-          create: weekDays.map((day) => {
+          create: weekDays.map((weekDay) => {
             return {
-              week_day: day,
+              week_day: weekDay,
             };
           }),
         },
@@ -32,7 +31,6 @@ export async function appRoutes(app: FastifyInstance) {
 
   app.get('/day', async (request) => {
     const getDayParams = z.object({
-      // Convert string to date
       date: z.coerce.date(),
     });
 
@@ -41,7 +39,6 @@ export async function appRoutes(app: FastifyInstance) {
     const parsedDate = dayjs(date).startOf('day');
     const weekDay = parsedDate.get('day');
 
-    // Get all habits that were created before the date and have the week day
     const possibleHabits = await prisma.habit.findMany({
       where: {
         created_at: {
@@ -55,23 +52,22 @@ export async function appRoutes(app: FastifyInstance) {
       },
     });
 
-    // Get all habits that were completed on the date
     const day = await prisma.day.findFirst({
       where: {
         date: parsedDate.toDate(),
       },
       include: {
-        habitsDay: true,
+        dayHabits: true,
       },
     });
 
-    const completedHabitsIds = day?.habitsDay.map((day) => {
-      return day.habit_id;
+    const completedHabits = day?.dayHabits.map((dayHabit) => {
+      return dayHabit.habit_id;
     });
 
     return {
       possibleHabits,
-      completedHabitsIds,
+      completedHabits,
     };
   });
 
@@ -98,25 +94,23 @@ export async function appRoutes(app: FastifyInstance) {
       });
     }
 
-    const habitDay = await prisma.habitDay.findUnique({
+    const dayHabit = await prisma.dayHabit.findUnique({
       where: {
-        habit_id_day_id: {
-          habit_id: id,
+        day_id_habit_id: {
           day_id: day.id,
+          habit_id: id,
         },
       },
     });
 
-    if (habitDay) {
-      // Toggle the habit off
-      await prisma.habitDay.delete({
+    if (dayHabit) {
+      await prisma.dayHabit.delete({
         where: {
-          id: habitDay.id,
+          id: dayHabit.id,
         },
       });
     } else {
-      // Toggle the habit on
-      await prisma.habitDay.create({
+      await prisma.dayHabit.create({
         data: {
           day_id: day.id,
           habit_id: id,
@@ -133,8 +127,8 @@ export async function appRoutes(app: FastifyInstance) {
         (
           SELECT 
             cast(count(*) as float)
-          FROM habit_days HD
-          WHERE HD.day_id = D.id
+          FROM day_habits DH
+          WHERE DH.day_id = D.id
         ) as completed,
         (
           SELECT
