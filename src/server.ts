@@ -10,6 +10,7 @@ app.register(appRoutes);
 app
   .listen({
     port: 8080,
+    host: '0.0.0.0',
   })
   .then(() => {
     console.log('HTTP Server running on Port 8080!');
