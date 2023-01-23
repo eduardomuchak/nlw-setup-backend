@@ -27,6 +27,10 @@ export async function appRoutes(app: FastifyInstance) {
         },
       },
     });
+
+    return {
+      message: 'Habit created',
+    };
   });
 
   app.patch('/habits/:id', async (request) => {
@@ -58,6 +62,33 @@ export async function appRoutes(app: FastifyInstance) {
         },
       },
     });
+
+    return {
+      message: 'Habit updated',
+      habit: {
+        id,
+        title,
+        weekDays,
+      },
+    };
+  });
+
+  app.delete('/habits/:id', async (request) => {
+    const deleteHabitParams = z.object({
+      id: z.string().uuid(),
+    });
+
+    const { id } = deleteHabitParams.parse(request.params);
+
+    await prisma.habit.delete({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      message: 'Habit deleted',
+    };
   });
 
   app.get('/day', async (request) => {
@@ -149,6 +180,10 @@ export async function appRoutes(app: FastifyInstance) {
         },
       });
     }
+
+    return {
+      message: 'Habit progress updated',
+    };
   });
 
   app.get('/summary', async () => {
