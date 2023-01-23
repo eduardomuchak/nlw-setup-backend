@@ -29,6 +29,37 @@ export async function appRoutes(app: FastifyInstance) {
     });
   });
 
+  app.patch('/habits/:id', async (request) => {
+    const updateHabitParams = z.object({
+      id: z.string().uuid(),
+    });
+
+    const updateHabitBody = z.object({
+      title: z.string(),
+      weekDays: z.array(z.number().min(0).max(6)),
+    });
+
+    const { id } = updateHabitParams.parse(request.params);
+    const { title, weekDays } = updateHabitBody.parse(request.body);
+
+    await prisma.habit.update({
+      where: {
+        id,
+      },
+      data: {
+        title,
+        weekDays: {
+          deleteMany: {},
+          create: weekDays.map((weekDay) => {
+            return {
+              week_day: weekDay,
+            };
+          }),
+        },
+      },
+    });
+  });
+
   app.get('/day', async (request) => {
     const getDayParams = z.object({
       date: z.coerce.date(),
