@@ -80,6 +80,15 @@ export async function appRoutes(app: FastifyInstance) {
 
     const { id } = deleteHabitParams.parse(request.params);
 
+    // Delete related records in HabitWeekDays
+    await prisma.habitWeekDays.deleteMany({
+      where: { habit_id: id },
+    });
+    // Delete related records in DayHabit
+    await prisma.dayHabit.deleteMany({
+      where: { habit_id: id },
+    });
+    // Delete the habit
     await prisma.habit.delete({
       where: {
         id,
