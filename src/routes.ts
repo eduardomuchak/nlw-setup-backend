@@ -212,4 +212,19 @@ export async function appRoutes(app: FastifyInstance) {
 
     return summary;
   });
+
+  // Get all habits
+  app.get('/habits', async () => {
+    const habits = await prisma.habit.findMany({
+      include: {
+        weekDays: true,
+      },
+
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+
+    return habits;
+  });
 }
