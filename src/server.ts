@@ -9,11 +9,15 @@ app.register(cors, {
 });
 app.register(appRoutes);
 
+const ip = require('ip');
+
 app
   .listen({
-    port: 8080,
-    // host: '0.0.0.0',
+    port: Number(process.env.PORT),
+    host: ip.address(),
   })
   .then(() => {
-    console.log('HTTP Server running on Port 8080!');
+    console.log(
+      `HTTP Server running on Port ${ip.address()}:${process.env.PORT}`,
+    );
   });

@@ -1,15 +1,15 @@
 {
-  "name": "nlw-setup-server",
+  "name": "server",
   "version": "1.0.0",
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "description": "",
-  "main": "/src/server.ts",
-  "type": "module",
+  "main": "index.js",
   "scripts": {
     "start": "node .",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -17,10 +17,10 @@
   "dependencies": {
     "@fastify/cors": "^8.2.0",
     "@prisma/client": "^4.9.0",
-    "@vercel/node": "^2.8.15",
     "dayjs": "^1.11.7",
     "dotenv": "^16.0.3",
     "fastify": "^4.11.0",
+    "ip": "^1.1.8",
     "zod": "^3.20.2"
   },
   "devDependencies": {
