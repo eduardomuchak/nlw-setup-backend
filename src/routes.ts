@@ -4,100 +4,9 @@ import { z } from 'zod';
 import { prisma } from './lib/prisma';
 
 export async function appRoutes(app: FastifyInstance) {
-  app.post('/habits', async (request) => {
-    const createHabitBody = z.object({
-      title: z.string(),
-      weekDays: z.array(z.number().min(0).max(6)),
-    });
-
-    const { title, weekDays } = createHabitBody.parse(request.body);
-
-    const today = dayjs().startOf('day').toDate();
-
-    await prisma.habit.create({
-      data: {
-        title,
-        created_at: today,
-        weekDays: {
-          create: weekDays.map((weekDay) => {
-            return {
-              week_day: weekDay,
-            };
-          }),
-        },
-      },
-    });
-
-    return {
-      message: 'Habit created',
-    };
-  });
-
-  app.patch('/habits/:id', async (request) => {
-    const updateHabitParams = z.object({
-      id: z.string().uuid(),
-    });
-
-    const updateHabitBody = z.object({
-      title: z.string(),
-      weekDays: z.array(z.number().min(0).max(6)),
-    });
-
-    const { id } = updateHabitParams.parse(request.params);
-    const { title, weekDays } = updateHabitBody.parse(request.body);
-
-    await prisma.habit.update({
-      where: {
-        id,
-      },
-      data: {
-        title,
-        weekDays: {
-          deleteMany: {},
-          create: weekDays.map((weekDay) => {
-            return {
-              week_day: weekDay,
-            };
-          }),
-        },
-      },
-    });
-
-    return {
-      message: 'Habit updated',
-      habit: {
-        id,
-        title,
-        weekDays,
-      },
-    };
-  });
-
-  app.delete('/habits/:id', async (request) => {
-    const deleteHabitParams = z.object({
-      id: z.string().uuid(),
-    });
-
-    const { id } = deleteHabitParams.parse(request.params);
-
-    // Delete related records in HabitWeekDays
-    await prisma.habitWeekDays.deleteMany({
-      where: { habit_id: id },
-    });
-    // Delete related records in DayHabit
-    await prisma.dayHabit.deleteMany({
-      where: { habit_id: id },
-    });
-    // Delete the habit
-    await prisma.habit.delete({
-      where: {
-        id,
-      },
-    });
-
-    return {
-      message: 'Habit deleted',
-    };
+  // GET ROUTES
+  app.get('/', async () => {
+    return { message: 'Hello World!' };
   });
 
   app.get('/day', async (request) => {
@@ -140,6 +49,118 @@ export async function appRoutes(app: FastifyInstance) {
     return {
       possibleHabits,
       completedHabits,
+    };
+  });
+
+  app.get('/summary', async () => {
+    const summary = await prisma.$queryRaw`
+      SELECT 
+        D.id, 
+        D.date,
+        (
+          SELECT 
+            cast(count(*) as float)
+          FROM day_habits DH
+          WHERE DH.day_id = D.id
+        ) as completed,
+        (
+          SELECT
+            cast(count(*) as float)
+          FROM habit_week_days HDW
+          JOIN habits H
+            ON H.id = HDW.habit_id
+          WHERE
+            HDW.week_day = extract(dow from to_timestamp(D.date/1000.0))
+            AND H.created_at <= D.date
+        ) as amount
+      FROM days D
+    `;
+
+    return summary;
+  });
+
+  app.get('/habits', async () => {
+    const habits = await prisma.habit.findMany({
+      include: {
+        weekDays: true,
+      },
+
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+
+    return habits;
+  });
+
+  // POST ROUTES
+  app.post('/habits', async (request) => {
+    const createHabitBody = z.object({
+      title: z.string(),
+      weekDays: z.array(z.number().min(0).max(6)),
+    });
+
+    const { title, weekDays } = createHabitBody.parse(request.body);
+
+    const today = dayjs().startOf('day').toDate();
+
+    await prisma.habit.create({
+      data: {
+        title,
+        created_at: today,
+        weekDays: {
+          create: weekDays.map((weekDay) => {
+            return {
+              week_day: weekDay,
+            };
+          }),
+        },
+      },
+    });
+
+    return {
+      message: 'Habit created',
+    };
+  });
+
+  // PATCH ROUTES
+  app.patch('/habits/:id', async (request) => {
+    const updateHabitParams = z.object({
+      id: z.string().uuid(),
+    });
+
+    const updateHabitBody = z.object({
+      title: z.string(),
+      weekDays: z.array(z.number().min(0).max(6)),
+    });
+
+    const { id } = updateHabitParams.parse(request.params);
+    const { title, weekDays } = updateHabitBody.parse(request.body);
+
+    await prisma.habit.update({
+      where: {
+        id,
+      },
+      data: {
+        title,
+        weekDays: {
+          deleteMany: {},
+          create: weekDays.map((weekDay) => {
+            return {
+              week_day: weekDay,
+            };
+          }),
+        },
+      },
+    });
+
+    return {
+      message: 'Habit updated',
+      habit: {
+        id,
+        title,
+        weekDays,
+      },
     };
   });
 
@@ -195,45 +216,31 @@ export async function appRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get('/summary', async () => {
-    const summary = await prisma.$queryRaw`
-      SELECT 
-        D.id, 
-        D.date,
-        (
-          SELECT 
-            cast(count(*) as float)
-          FROM day_habits DH
-          WHERE DH.day_id = D.id
-        ) as completed,
-        (
-          SELECT
-            cast(count(*) as float)
-          FROM habit_week_days HDW
-          JOIN habits H
-            ON H.id = HDW.habit_id
-          WHERE
-            HDW.week_day = extract(dow from to_timestamp(D.date/1000.0))
-            AND H.created_at <= D.date
-        ) as amount
-      FROM days D
-    `;
+  // DELETE ROUTES
+  app.delete('/habits/:id', async (request) => {
+    const deleteHabitParams = z.object({
+      id: z.string().uuid(),
+    });
 
-    return summary;
-  });
+    const { id } = deleteHabitParams.parse(request.params);
 
-  // Get all habits
-  app.get('/habits', async () => {
-    const habits = await prisma.habit.findMany({
-      include: {
-        weekDays: true,
-      },
-
-      orderBy: {
-        created_at: 'asc',
+    // Delete related records in HabitWeekDays
+    await prisma.habitWeekDays.deleteMany({
+      where: { habit_id: id },
+    });
+    // Delete related records in DayHabit
+    await prisma.dayHabit.deleteMany({
+      where: { habit_id: id },
+    });
+    // Delete the habit
+    await prisma.habit.delete({
+      where: {
+        id,
       },
     });
 
-    return habits;
+    return {
+      message: 'Habit deleted',
+    };
   });
 }
