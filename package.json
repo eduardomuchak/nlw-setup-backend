@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node .",
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate"
+    "build:tsx": "tsx src/server.ts",
+    "build": "rm -rf dist && tsc --sourceMap -p ./"
   },
   "keywords": [],
   "author": "",
