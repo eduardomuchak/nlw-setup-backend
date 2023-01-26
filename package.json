@@ -9,6 +9,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
+    "build": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
     "build:prisma": "prisma generate"
   },
