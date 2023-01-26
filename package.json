@@ -6,10 +6,11 @@
   },
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node .",
+    "start": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate"
+    "build:prisma": "prisma generate"
   },
   "keywords": [],
   "author": "",
