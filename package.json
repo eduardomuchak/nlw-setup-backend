@@ -8,8 +8,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "tsx src/server.ts",
-    "build": "tsx --build src/server.ts",
+    "start": "tsx watch src/server.ts",
+    "build": "tsc --build src/server.ts",
     "dev": "tsx watch src/server.ts",
     "build:prisma": "prisma generate"
   },
