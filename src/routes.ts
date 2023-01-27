@@ -53,28 +53,39 @@ export async function appRoutes(app: FastifyInstance) {
   });
 
   app.get('/summary', async () => {
-    const summary = await prisma.$queryRaw`
+    const summary: any = await prisma.$queryRaw`
       SELECT 
         D.id, 
         D.date,
         (
           SELECT 
-            count(*)::int4
+            count(distinct DH.habit_id)::int4
           FROM day_habits DH
           WHERE DH.day_id = D.id
         ) as completed,
         (
           SELECT
-            count(*)::int4
+            count(distinct HDW.habit_id)::int4
           FROM habit_week_days HDW
           JOIN habits H
             ON H.id = HDW.habit_id
           WHERE
             HDW.week_day = (extract(isodow from D.date) - 1)
-            AND H.created_at <= D.date
+            AND date_trunc('day',H.created_at) = date_trunc('day',D.date)
         ) as amount
       FROM days D
     `;
+
+    if (summary.length === 0) {
+      return [
+        {
+          id: '',
+          date: new Date(),
+          completed: 0,
+          amount: 0,
+        },
+      ];
+    }
 
     return summary;
   });
